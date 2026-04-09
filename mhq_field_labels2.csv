@@ -1,0 +1,55 @@
+Fld,Label,FullLabel,Type,Order
+Overall.MHQ,MHQ,Overall.MHQ,Overall,1
+Cognition.Dimension,Cognition,Cognition,Dims,1
+Adaptability...Resilence.Dimension,Adaptability.Resilence,Adaptability & Resilience,Dims,2
+Drive...Motivation.Dimension,Drive.Motivation,Drive & Motivation,Dims,3
+Mood...Outlook.Dimension,Mood.Outlook,Mood & Outlook,Dims,4
+Social...Self.Dimension,Social.Self,Social Self,Dims,5
+Mind.Body.Connection.Dimension,Mind.Body.Connection,Mind Body Connection,Dims,6
+Adaptability.to.Change,Adaptability,Adaptability,Capacity,11
+Self.Worth...Confidence,Self.Worth,Self Worth & Confidence,Capacity,19
+Creativity...Problem.Solving,Creativity,Creativity & Problem Solving,Capacity,5
+Drive...Motivation,Drive,Drive & Motivation,Capacity,10
+Stability...Calmness,Stability,Stability & Calmness,Capacity,14
+Sleep.Quality,Sleep.Quality,Sleep Quality,Capacity,25
+Self.Control...Impulsivity,Self.Control,Self Control & Impulsivity,Capacity,13
+Ability.to.Learn,Ability.to.Learn,Ability to Learn,Capacity,4
+Coordination,Coordination,Coordination,Capacity,27
+Relationships.with.others,Relationships,Relationships with Others,Capacity,18
+Emotional.Resilience,Emotional.Resilience,Emotional Resilience,Capacity,15
+Planning...Organisation,Planning,Planning,Capacity,6
+Physical.Intimacy,Physical.Intimacy,Physical Intimacy,Capacity,20
+Speech...Language,Speech.Language,Speech & Language,Capacity,17
+Memory,Memory,Memory,Capacity,3
+Social.interactions...Cooperation,Social.Interactions,Social Interactions & Cooperation,Capacity,21
+Decision.making...Risk.taking,Decision.Making,Decision Making & Risk Taking,Capacity,8
+Curiosity..Interest...Enthusiasm,Curiosity,"Curiosity, Interest & Enthusiasm",Capacity,7
+Energy.Level,Energy.Level,Energy Level,Capacity,24
+Emotional.Control,Emotional.Control,Emotional Control,Capacity,12
+Focus...Concentration,Focus,Focus & Concentration,Capacity,1
+Appetite.Regulation,Appetite.Regulation,Appetite Regulation,Capacity,26
+Empathy,Empathy,Empathy,Capacity,22
+Sensory.Sensitivity,Sensory.Sensitivity,Sensory Sensitivity,Capacity,9
+Self.Image,Self.Image,Self Image,Capacity,23
+Outlook...Optimism,Optimism,Outlook & Optimism,Capacity,16
+Selective.Attention,Selective.Attention,Selective Attention,Capacity,2
+Restlessness...Hyperactivity,Restlessness,Restlessness & Hyperactivity,Problem,10
+Fear...Anxiety,Fear.Anxiety,Fear & Anxiety,Problem,2
+Susceptibility.to.Infections,Susceptibility.to.Infections,Susceptibility to Infections,Problem,18
+Aggression.Towards.Others,Aggression,Aggression Towards Others,Problem,6
+Avoidance...Withdrawal,Avoidance,Avoidance & Withdrawal,Problem,4
+Unwanted..Strange.or.Obsessive.Thoughts,Obsessive.Thoughts,"Unwanted, Strange or Obsessive Thoughts",Problem,9
+Mood.Swings,Mood.Swings,Mood Swings,Problem,12
+Sense.of.being.detached.from.reality,Detached,Sense of being detached from reality,Problem,5
+Nightmares,Nightmares,Nightmares,Problem,14
+Addictions,Addictions,Addictions,Problem,17
+Anger...Irritability,Anger.Irritability,Anger & Irritability,Problem,13
+Suicidal.Thoughts.or.Intentions,Suicidal.Thoughts,Suicidal Thoughts or Intentions,Problem,1
+Experience.of.Pain,Pain,Experience of Pain,Problem,20
+Guilt...Blame,Guilt,Guilt & Blame,Problem,16
+Hallucinations,Hallucinations,Hallucinations,Problem,7
+Traumatic.Flashbacks,Flashbacks,Traumatic Flashbacks,Problem,15
+Repetitive.or.Compulsive.Actions,Compulsive.Actions,Compulsive Actions,Problem,11
+Feelings.of.Sadness..Distress.or.Hopelessness,Sadness,"Feelings of Sadness, Distress or Hopelessness",Problem,3
+Physical.Health.Issues,Physical.Health.Issues,Physical Health Issues,Problem,19
+Confusion.or.Slowed.Thinking,Confusion.Thinking,Confusion or Slowed Thinking,Problem,8
