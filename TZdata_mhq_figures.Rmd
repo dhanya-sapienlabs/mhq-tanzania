@@ -1,0 +1,918 @@
+---
+title: "Online vs Offline MHQ - Tanzania"
+output: html_document
+date: ' data until 2025-02-28'
+---
+
+```{r setoptions, echo=FALSE}
+library(knitr)
+opts_chunk$set(echo=F, fig.width=5, fig.height=5,dpi=70,warning=F,comment=NA,message=F)
+```
+
+```{r}
+library(lubridate)
+library(magrittr)
+library(hms)
+library(ggplot2)
+library(gridExtra)
+library(reshape2)
+library(kableExtra)
+library(xlsx)
+library(plyr)
+
+
+colorPalatte_Income = c('#a6611a','#dfc27d','#006d2c')
+colorPalatte_Gender = c('#4daf4a','#984ea3')
+
+colorPalatte_Tribe = list('Hadza'=c('#ece7f2','#a6bddb','#2b8cbe'),
+                          'Rural.TZ' = c('#fee0d2','#fc9272','#de2d26'),
+                           'GM' = c('#bdbdbd','#636363','#252525'))
+
+colorPalatte_SL = c('#e41a1c','#377eb8','#4daf4a','#984ea3',
+                    '#ff7f00','#000000','#a65628','#f781bf','#999999',
+                    '#8dd3c7','#ffffb3','#bebada','#fb8072')
+
+colorPalatte_GM = c('#377eb8','#e41a1c','#000000','#282828')
+
+TitleSize=18
+TextSize=14
+vjustx=0.1
+vjusty=0.3
+
+PaperTheme_NoGrid <- function (fig){
+  vjustx=0.1
+  vjusty=0.3
+  #panel.grid = element_blank(), 
+  fig <- fig + theme(panel.grid = element_blank(), axis.text=element_text(size=TextSize,color='black'),
+                     axis.title.y=element_text(vjust=vjusty,color='black',margin = ggplot2::margin(t = 0, r = 10, b = 0, l = 0)),
+                     axis.title=element_text(size=TitleSize, face='bold',color='black'),
+                     axis.title.x=element_text(vjust=vjustx, face='bold',color='black'),
+                     panel.background = element_blank(),legend.key=element_blank(),plot.margin = ggplot2::margin(5,5,2,2)) +
+    theme(axis.line.x = element_line(color="black", size = 0.5),
+          axis.line.y = element_line(color="black", size = 0.5), axis.ticks =element_line()) + 
+    scale_x_continuous(expand=c(0,0)) +scale_y_continuous(expand=c(0,0))
+  return(fig)
+}
+
+PaperTheme_NoGrid_xDiscr <- function (fig){
+  vjustx=0.1
+  vjusty=0.3
+  #panel.grid = element_blank(), 
+  fig <- fig + theme(panel.grid = element_blank(), axis.text=element_text(size=TextSize,color='black'),
+                     axis.title.y=element_text(vjust=vjusty,color='black'),
+                     axis.title=element_text(size=TitleSize, face='bold',color='black'),
+                     axis.title.x=element_text(vjust=vjustx, face='bold',color='black'),
+                     panel.background = element_blank(), 
+                     panel.border = element_blank(),legend.key=element_blank()) +
+    theme(axis.line.x = element_line(color="black", size = 0.5),
+          axis.line.y = element_line(color="black", size = 0.5), axis.ticks = element_line()) + 
+    scale_x_discrete(expand=c(0,0.3)) +scale_y_continuous(expand=c(0,0))
+  return(fig)
+}
+
+mhq_min=0
+mhq_max=130
+
+library(fmsb)
+
+radarPlot <- function(values, titleName=NULL, caxislabels=NULL, colorPalatte = colorPalatte_GM, plotBlank=F){
+  ncols = colorPalatte[c(1:ncol(values))]
+  data = t(values)
+  data = rbind('Max'=rep(120,ncol(values)),
+               'Min'=rep(60,ncol(values)),data)
+  
+  data=data.frame(data)
+  #print('Range 60-120')
+  radarchart(data, axistype = 4,# Customize the polygon
+    plwd = 3, plty = 1,pcol = ncols,
+    cglcol = "grey", cglty = 1, cglwd = 0.8, axislabcol = "darkgrey", title=titleName, caxislabels = caxislabels)
+  legend(x=0.8,y=1.2, legend = rownames(data[-c(1,2),]), bty = "n", pch=20 , col=ncols , text.col = "black", cex=0.8, pt.cex=2)
+ 
+  if (plotBlank==T){
+  radarchart(data, axistype = 4,# Customize the polygon
+    plwd = 3, plty = 1,pcol = ncols,
+    cglcol = "grey", cglty = 1, cglwd = 0.8, axislabcol = "darkgrey", title=NULL, caxislabels = caxislabels,vlabels = rep("", ncol(data)))
+  #legend(x=0.8,y=1.2, legend = rownames(data[-c(1,2),]), bty = "n", pch=20 , col=ncols , text.col = "black", cex=0.8, pt.cex=2)
+  }
+}
+
+radarPlot_SP <- function(values, minR=NULL, maxR=NULL, titleName=NULL,colorPalatte = colorPalatte_GM, plotBlank=F){
+  if (is.null(minR)){minR = round(min(values,na.rm=T))}
+  if (is.null(maxR)){maxR = ceiling(max(values,na.rm=T))}
+  
+  ncols = colorPalatte[c(1:ncol(values))]
+  data = data.frame(t(values))
+  data = rbind('Max'=rep(maxR,ncol(values)),
+               'Min'=rep(minR,ncol(values)),data)
+  
+  data=data.frame(data)
+  #print(paste('Range: ', minR, '-', maxR, sep=''))
+  
+  radarchart(data, axistype = 4,# Customize the polygon
+    plwd = 3, plty = 1,pcol = ncols,
+    cglcol = "grey", cglty = 1, cglwd = 0.8, axislabcol = "darkgrey", title=titleName,
+    vlcex=1.2, caxislabels=seq(4,8,1),label.offset=1.2)
+  legend(x=0.8,y=1.2, legend = rownames(data[-c(1,2),]), bty = "n", pch=20 , 
+        col=ncols , text.col = "black", cex=0.5, pt.cex=0.5)
+
+  if (plotBlank==T){  
+  radarchart(data, axistype = 4,# Customize the polygon
+    plwd = 3, plty = 1,pcol = ncols,
+    cglcol = "grey", cglty = 1, cglwd = 0.8, axislabcol = "darkgrey", title=NULL,
+    vlcex=1.2, caxislabels=seq(4,8,1),label.offset=1.2,vlabels = rep("", ncol(data)))
+  }
+}
+
+# Function to add significance stars
+add_stars <- function(p) {
+  stars <- ifelse(p <= 0.001, "***",
+                  ifelse(p <= 0.01, "**",
+                         ifelse(p <= 0.05, "*", "")))
+  p_sci <- formatC(p, format = "e", digits = 2)
+  paste0(p_sci, stars)
+}
+
+broad_age_grps_list=list("18-34"=c('25-34','18-24'),
+                         '35-54'=c('35-44','45-54'),
+                         '55+'=c('55-64','65+','65-74','75+'))
+```
+
+for average acrtoss age analysis 55+ is bundled as a single age category 
+
+TZ_data
+---
+
+
+```{r}
+mhq_fld_labels = read.csv('mhq_field_labels2.csv')
+writeFile=F
+dataset_complete = read.csv('Study_DemoDataset_N10000.csv')
+
+##remove NA 
+remove_index = which(is.na(dataset_complete$Overall.MHQ)==T )
+if (length(remove_index)>0){dataset_complete = dataset_complete[-remove_index,]}
+dataset_complete = dataset_complete[which(dataset_complete$clean==1),]
+
+TribeOfInterest = list('Hadza' = c('Hadza'), 
+                       'Rural.TZ' = setdiff(unique(dataset_complete$Tribe), c('Hadza',"GM.Online")),
+                       'GM' = c('GM.Online'))
+dataset_complete$Group=NA
+for (i in 1:length(TribeOfInterest)){
+  dataset_complete$Group[dataset_complete$Tribe %in% TribeOfInterest[[i]]] = names(TribeOfInterest)[i]
+}
+dataset_complete$AgeGroup[dataset_complete$AgeGroup %in% c("65-74",'75+')]="65+"
+
+df = unique(dataset_complete[,c('SubjectID', 'Group')])
+out = data.frame(table(df$Group))
+colnames(out)[1] = 'Groups'
+kable(out, booktabs = T)%>%kable_styling(full_width = F,position="left") 
+
+df = unique(dataset_complete[,c("SubjectID",'Group','Biological.Sex')])
+df = data.frame(table(df[,c('Group','Biological.Sex')]))
+out = data.frame(acast(df, 'Group~Biological.Sex', value.var='Freq'))
+out$Total = as.numeric(rowSums(out))
+out$Female_perc = round(out$Female*100/out$Total)
+out$Male_perc = round(out$Male*100/out$Total)
+kable(out, booktabs = T)%>%kable_styling(full_width = F,position="left") 
+rm(df, out)
+
+df = unique(dataset_complete[,c("SubjectID",'Group','Understanding.Assessment')])
+out = data.frame(table(df[,c('Group','Understanding.Assessment')]))
+out = data.frame(acast(out, 'Group~Understanding.Assessment', value.var='Freq'))
+
+##remove who did not understand questionnaire 
+remove_index = which(dataset_complete$Understanding.Assessment=='No' & dataset_complete$Group=='GM' )
+if (length(remove_index)>0){dataset_complete = dataset_complete[-remove_index,]}
+
+income_histogram_by_group=NULL
+for (p in 1:length(TribeOfInterest)){
+  out = data.frame(table(dataset_complete$IncomeInDollars[dataset_complete$Group %in% names(TribeOfInterest)[p]]))
+  colnames(out) = c('IncomeInDollars',names(TribeOfInterest)[p])
+  if(p==1){
+    income_histogram_by_group=out
+  }else{
+    income_histogram_by_group=merge(income_histogram_by_group, out, all.x=T,all.y=T, by='IncomeInDollars')
+  }
+}
+kable(income_histogram_by_group, booktabs = T)%>%kable_styling(full_width = F,position="left") 
+```
+
+Table 1: Age Profile
+---
+
+- after removing the mhq validity
+
+```{r}
+df = unique(dataset_complete[,c('SubjectID','AgeGroup','Group')])
+df$SubjectID = NULL
+
+out = dcast(data.frame(table(df)),'AgeGroup~Group')
+out = rbind(out, data.frame(AgeGroup = 'All', t(colSums(out[,c(2:4)]))))
+kable(out, booktabs = T)%>%kable_styling(full_width = F,position="left") 
+
+out_combined = rbind('Under35' = colSums(out[out$AgeGroup %in% c('25-34','18-24'),2:4]),
+                     '35-54' = colSums(out[out$AgeGroup %in% c('35-44','45-54'),2:4]),
+                     'Over55' = colSums(out[out$AgeGroup %in% c('55-64','65-74','75+','65+'),2:4]))
+out_combined = rbind(out_combined, data.frame(t(colSums(out_combined))))
+
+kable(out_combined, booktabs = T)%>%kable_styling(full_width = F,position="left") 
+rm(out_combined,df,out)
+```
+
+
+Figure 2 : MHQ vs Age
+---
+
+```{r, results='asis', dpi=100}
+##Plotting Function
+##MHQ scores overall. column order to be age, mhq
+
+mhqAgePlot_byGroup <- function (mhq_data, title_add=NULL, 
+                        writeFile=F, fname=NULL, sheetName=NULL, colorPalatte=colorPalatte_SL, globalComparison=F){
+    colnames(mhq_data)=c('AgeGroup','Field', 'Group')
+    # mhq_data$AgeGroup=as.character(mhq_data$AgeGroup)
+    # mhq_data$AgeGroup[mhq_data$AgeGroup %in% c('16','17','18','19','20')]='16-20'
+    # mhq_data$AgeGroup[mhq_data$AgeGroup %in% c('13','14','15')]='<15'
+    # mhq_data$AgeGroup[mhq_data$AgeGroup %in% c('75-84','85+')]='75+'
+    mhq_data$AgeGroup=factor(mhq_data$AgeGroup)
+    mhq_data = na.omit(mhq_data)
+    
+    mhq_by_age = ddply(mhq_data, .(AgeGroup, Group), summarise, 
+                       mean_val = round(mean(Field, na.rm=T),1),sem_val = sd(Field, na.rm=T), count=length(AgeGroup))
+    mhq_by_age$sem_val = round(mhq_by_age$sem_val/sqrt(mhq_by_age$count),1)
+    
+    if (writeFile==T){
+      write.xlsx(mhq_by_age, file=fname, sheetName = sheetName, append = T)
+    }
+    
+    if (globalComparison==T){
+      globalData = read.csv('GM_World_mhq_by_age.csv')
+      globalData$AgeGroup[globalData$AgeGroup %in% c('16-20','21-24')]='18-24'
+      globalData$Group = 'GM.Global'
+      globalData$sem_val = 0
+      mhq_by_age = rbind(mhq_by_age, globalData[,names(mhq_by_age)])
+      rm(globalData)
+    }
+    
+    g1 <- ggplot(mhq_by_age,aes(AgeGroup, mean_val,group=Group, color=Group, linetype=Group)) + 
+      geom_hline(yintercept = 100,color='black', size=0.2)+
+      geom_errorbar(aes(ymin = mean_val-sem_val, ymax = mean_val+sem_val), width = 0.2, color='black')+ 
+      geom_point()+ geom_line(aes(size=Group)) +theme_bw()  + 
+      scale_color_manual(values = colorPalatte)+ 
+      scale_linetype_manual(values = c(rep('solid',3),'dotted'))+scale_size_manual(values = c(rep(1,3),0.75))
+    
+    if (!is.null(title_add)){g1 <-g1 + labs(title=paste(title_add,': MHQ by Age'))}
+    g1 <- PaperTheme_NoGrid_xDiscr(g1)  +theme(axis.text.x = element_text(angle=45,hjust=1), legend.title = element_blank(), legend.position ="top")+ scale_y_continuous(breaks = seq(0,160,40),labels = seq(0,160,40))+ylim(mhq_min,mhq_max)+ labs(x='Age', y='MHQ')
+
+    return(list(g1,mhq_by_age))
+}
+
+mhqAgePlot_byGroup_decadeShift <- function (mhq_data){
+    colnames(mhq_data)=c('AgeGroup','Field', 'Group')
+    mhq_data$AgeGroup=factor(mhq_data$AgeGroup)
+    mhq_data = na.omit(mhq_data)
+    
+    mhq_by_age = ddply(mhq_data, .(AgeGroup, Group), summarise, 
+                       mean_val = round(mean(Field, na.rm=T),1),sem_val = sd(Field, na.rm=T), count=length(AgeGroup))
+    mhq_by_age$sem_val = round(mhq_by_age$sem_val/sqrt(mhq_by_age$count),1)
+    
+    ##Shift to right
+    mhq_shift = mhq_by_age
+    mhq_shift$Group = 'GM_shifted_right'
+    mhq_shift$AgeGroup=c(as.character(mhq_shift$AgeGroup[2:nrow(mhq_shift)]),'75+')
+    mhq_by_age$AgeGroup=as.character(mhq_by_age$AgeGroup)
+    mhq_by_age = rbind(mhq_by_age, mhq_shift)
+    
+    
+      globalData = read.csv('GM_World_mhq_by_age.csv')
+      globalData$Group = 'GM.Global'
+      globalData$sem_val = 0
+      globalData$AgeGroup = as.character(globalData$AgeGroup)
+      mhq_by_age = rbind(mhq_by_age, globalData[,names(mhq_by_age)])
+      rm(globalData)
+    
+    mhq_by_age$AgeGroup = factor(mhq_by_age$AgeGroup)
+    
+    g1 <- ggplot(mhq_by_age,aes(AgeGroup, mean_val,group=Group, linetype=Group, size=Group)) + 
+      geom_errorbar(aes(ymin = mean_val-sem_val, ymax = mean_val+sem_val), width = 0.2, color='black')+ 
+      geom_point()+ geom_line() +theme_bw()  +
+      scale_linetype_manual(values = c(rep('solid',2),'dotted'))+scale_size_manual(values = c(rep(1,2),0.75))
+    
+    g1 <- PaperTheme_NoGrid_xDiscr(g1)  +theme(axis.text.x = element_text(angle=45,hjust=1), legend.title = element_blank(), legend.position ="top")+ scale_y_continuous(breaks = seq(0,160,40),labels = seq(0,160,40))+ylim(mhq_min,mhq_max)+ labs(x='Age', y='MHQ')
+
+    return(g1)
+}
+
+# Mann-Whitney test using formula interface
+# kruskal.test(Overall.MHQ ~ Group, data = df)
+MWstat_byAgeGroup <- function (df, pairwise_levels){
+  unique_age_groups = levels(df$AgeGroup)
+  
+  mw_test = NULL
+  
+  for (k in 1:length(unique_age_groups)){
+    group_df <- subset(df, df$AgeGroup %in% unique_age_groups[k])
+    
+    stat1 = NULL
+    for (t in 1:ncol(pairwise_levels)){
+      group_ab <- subset(group_df, group_df$Group %in% pairwise_levels[,t])
+      result = wilcox.test(Overall.MHQ ~ Group, data = group_ab, alternative = "two.sided")
+      stat1 = c(stat1, signif(result$p.value, digits = 2)) 
+      rm(result, group_ab,out)
+    }
+    names(stat1) = paste(pairwise_levels[1,],pairwise_levels[2,],sep='.')
+    mw_test = rbind(mw_test, t(data.frame(stat1)))
+    rm(group_df)
+  }
+  
+  row.names(mw_test) = unique_age_groups
+  
+  mw_stat0=mw_test
+  # Apply function to the p_value column
+  for (k in 1:ncol(mw_stat0)){
+    mw_test[,k] = sapply(mw_stat0[,k], add_stars)
+  }
+  
+  mw_test=cbind(AgeGroup = row.names(mw_test),mw_test)
+  
+  return(mw_test)
+}
+
+##trend of only mean values
+RunStats_1wayAnovaTukey_MeanTrend <- function (dat, mhq_flds){
+  ##ONE way ANOVA by Tribe/group AND TUKEYS HSD##
+  ##CREATE NEW AGE GROUPS##
+  ##RUN and Print Stats##
+  
+  dat$NewAgeGroup = as.character(dat$AgeGroup)
+  dat$NewAgeGroup=factor(dat$NewAgeGroup)
+  index = which(dat$NewAgeGroup=='')
+  if (length(index)>0){dat = dat[-(index),]}
+  
+  group_names = levels(dat$Group)
+  
+  tukeys_summary_group = NULL
+  OverallStatsMerged = NULL
+  aov.stats = list()
+  tukey.stats = list()
+  trendR2.stats = list()
+  
+  for (k in 1:length(mhq_flds)){
+    print(mhq_flds[k])
+    
+    aov.stats[[mhq_flds[k]]] = NULL
+    tukey.stats[[mhq_flds[k]]] = NULL
+    trendR2.stats[[mhq_flds[k]]] = NULL
+    
+    for (q in 1:length(group_names)){
+      #print(group_names[q])
+      dat0 = na.omit(dat[dat$Group %in% group_names[q],c('NewAgeGroup',mhq_flds[k])])
+      model <- aov(as.formula(paste(mhq_flds[k],'~ NewAgeGroup')), data = dat0)  
+      tukey_results <- TukeyHSD(model)
+      
+      aov.stats[[mhq_flds[k]]] = rbind(aov.stats[[mhq_flds[k]]], data.frame(n = nrow(dat0), Group = group_names[q], aov.F = summary(model)[[1]][1,'F value'],aov.pval=summary(model)[[1]][1,'Pr(>F)']))
+      tukey.stats[[mhq_flds[k]]] = cbind(tukey.stats[[mhq_flds[k]]], tukey_results$NewAgeGroup[,c('p adj')])
+      rm(model,tukey_results)
+      
+      ##calculate mean value trend
+      colnames(dat0)[2]='Field'
+      mhq_by_age = ddply(dat0, .(NewAgeGroup), summarise, 
+                       mean_val = round(mean(Field, na.rm=T),1))
+   
+      x=as.numeric(mhq_by_age$NewAgeGroup)
+      y=mhq_by_age$mean_val
+      df = data.frame(x,y)
+      model <- lm(y ~ x, data = df)
+      model_summary <- summary(model)
+      slope <- model_summary$coefficients["x", "Estimate"]
+      r_squared <- model_summary$r.squared
+      p_value <- model_summary$coefficients["x", "Pr(>|t|)"]
+      rm(df, model, model_summary, x, y)
+      
+      trendR2.stats[[mhq_flds[k]]]=rbind(trendR2.stats[[mhq_flds[k]]],
+                                         data.frame(Group = group_names[q], slope, p_value,r_squared))
+      
+      
+    }
+    colnames(tukey.stats[[mhq_flds[k]]]) = group_names ##tukeys p-value
+    
+    ##add stars
+    ts = t(sapply(1:nrow(tukey.stats[[mhq_flds[k]]]), function (x) add_stars(tukey.stats[[mhq_flds[k]]][x,])))
+    colnames(ts) = colnames(tukey.stats[[mhq_flds[k]]])
+    row.names(ts) = row.names(tukey.stats[[mhq_flds[k]]])
+    ts=t(ts)
+    tukey.stats[[mhq_flds[k]]]= cbind(Group = row.names(ts), ts)
+    
+    aov.stats[[mhq_flds[k]]]$aov.pval = add_stars(aov.stats[[mhq_flds[k]]]$aov.pval)
+    
+    ##Merge_stats + trend-stats 
+    trendR2.stats[[mhq_flds[k]]]$slope = round(trendR2.stats[[mhq_flds[k]]]$slope,2)
+    trendR2.stats[[mhq_flds[k]]]$p_value_sign = add_stars(trendR2.stats[[mhq_flds[k]]]$p_value)
+    trendR2.stats[[mhq_flds[k]]]$r_squared = round(trendR2.stats[[mhq_flds[k]]]$r_squared,4)
+    
+    
+    merged_Stats = merge(aov.stats[[mhq_flds[k]]],tukey.stats[[mhq_flds[k]]], sort=F)
+    merged_Stats = merge(merged_Stats,trendR2.stats[[mhq_flds[k]]], sort=F)
+    merged_Stats = cbind('Field' = mhq_flds[k], merged_Stats)
+    OverallStatsMerged = rbind(merged_Stats, OverallStatsMerged)
+  }
+  
+  
+  return(OverallStatsMerged)
+}
+
+tnames = names(TribeOfInterest)
+tnames_combo2 = combn(tnames,2)
+
+df = dataset_complete[,c('AgeGroup','Overall.MHQ','Group')]
+df$Group = factor(df$Group, levels=names(TribeOfInterest))
+
+out  <- mhqAgePlot_byGroup(mhq_data = df, colorPalatte=colorPalatte_GM ,globalComparison = T)
+print(out[[1]])
+kable(out[[2]], booktabs = T)%>%kable_styling(full_width = F,position="left") 
+
+g1 <- mhqAgePlot_byGroup_decadeShift(mhq_data=df[df$Group %in% 'GM',])
+print(g1)
+
+```
+
+
+```{r, results='asis', dpi=100}
+##By Gender
+
+gender_levels = c('Male','Female')
+for (i in 1:length(TribeOfInterest)){
+  outname = names(TribeOfInterest)[i]
+  out = dataset_complete[dataset_complete$Group %in% outname,c('AgeGroup','Overall.MHQ','Biological.Sex')]
+  out = out[out$Biological.Sex %in% gender_levels,]
+  g1 <- mhqAgePlot_byGroup(mhq_data = out, title_add=paste(outname, 'Gender'),
+                     writeFile=writeFile, fname=outFile, sheetName='',colorPalatte=colorPalatte_Gender)
+  print(g1[[1]])
+  
+  df = out
+  colnames(df)[3] = 'Group'
+  df$AgeGroup = factor(df$AgeGroup)
+  mw_stat = MWstat_byAgeGroup(df=df, pairwise_levels = t(t(gender_levels)))
+  print(kable(mw_stat, booktabs = T, caption = paste(outname,"Mann-Whitney Pairwise test",sep=':'),row.names = FALSE)%>%kable_styling(full_width = F,position="left"))
+
+  rm(out,df)
+}
+
+#Hi Income vs Low Income
+index = which(is.na(dataset_complete$Income.Bucket)==F)
+df = dataset_complete[index,c('AgeGroup','Overall.MHQ','Group','Income.Bucket')]
+df$Grp.Income = paste(df$Group, sapply(df$Income.Bucket, function (x) strsplit(x,'-')[[1]][1]), sep='.')
+
+
+for (i in 1:length(TribeOfInterest)){
+  outname = names(TribeOfInterest)[i]
+  out = df[df$Group %in% outname,c('AgeGroup','Overall.MHQ','Grp.Income')]
+  out$Grp.Income = factor(out$Grp.Income, levels = paste(outname,c('Low','Mid','Hi'),sep='.'))
+  
+  g1 <- mhqAgePlot_byGroup(mhq_data = out, title_add=paste(outname, '+ Income'),
+                     writeFile=writeFile, fname=outFile, sheetName='',colorPalatte=colorPalatte_Income)
+  print(g1)
+  rm(out)
+}
+
+```
+
+##MHQ histograms / Cumulative Histograms age-wise mean for all 6 dimensions
+---
+mean across ages
+
+```{r, results='asis', dpi=100}
+mhq_flds = names(dataset_complete)[8:14]
+mhq_dim_labels = data.frame(mhq_flds = mhq_flds, label = c('MHQ','Cognition','Adaptability & Resilience', 'Drive & Motivation','Mood & Outlook', 'Social Self', 'Mind-Body Connection'))
+
+df = dataset_complete[,c('Group','AgeGroup', mhq_flds)]
+
+values_range = data.frame(sapply(3:ncol(df), function (x) range(df[,x], na.rm=T)))
+row.names(values_range) = c('min','max')
+colnames(values_range) = names(df)[3:ncol(df)]
+bins = seq(-100, 200, by=20)
+
+for (p in 1:length(mhq_flds)){
+  MHQ_histogram=NULL
+  for (k in 1:length(TribeOfInterest)){
+    out_fld = NULL
+    dg = df[df$Group %in% names(TribeOfInterest)[k],c('AgeGroup',mhq_flds[p])]
+    current_tribe = names(TribeOfInterest)[k] #paste(names(TribeOfInterest)[k],nrow(dg), sep='.')
+    dg$AgeGroup[dg$AgeGroup %in% c('65-74','75+','65+')] = '55-64'
+    age_flds = sort(unique(dg$AgeGroup))
+
+    out = hist(dg[[mhq_flds[p]]], bins, plot = F)
+    out_hist = data.frame(fld = out$mids, count = out$counts, perc = out$counts*100/sum(out$counts))
+    out_hist$cumsum = cumsum(out_hist$perc)
+    out_fld = cbind(out_hist, AgeGroup='All')
+  
+    for (q in 1:length(age_flds)){
+      dg2 = dg[dg$Age %in% age_flds[q],]
+      out = hist(dg2[,mhq_flds[p]], bins, plot = F)
+      out_hist = data.frame(fld = out$mids, count = out$counts, perc = out$counts*100/sum(out$counts))
+      out_hist$cumsum = cumsum(out_hist$perc)
+      out_fld = rbind(out_fld,cbind(out_hist, AgeGroup=age_flds[q]))
+    }
+    
+    MHQ_histogram=rbind(MHQ_histogram, cbind(out_fld,tribe=current_tribe))
+  }
+  
+  ##Average across ages
+  dp = MHQ_histogram[which(MHQ_histogram$AgeGroup!='All'),]
+  df_plot = ddply(dp, .(fld, tribe), summarise, mperc=mean(perc), mcumsum=mean(cumsum))
+  rm(dp)
+  
+  df_plot$tribe= factor(df_plot$tribe, levels=names(TribeOfInterest))
+  
+  xlabel = merge(data.frame(mhq_flds=mhq_flds[p]),mhq_dim_labels,all.x=T)$label
+  print(mhq_flds[p])
+  
+  g1 <- list()
+  g1[[1]] <- ggplot(df_plot, aes(fld, mperc)) +
+    geom_line(aes(group=tribe, color=tribe), size=0.75)+ 
+    scale_color_manual(values = colorPalatte_GM) + 
+    #labs(title = paste(mhq_flds[p],'Histogram',sep=':')) + 
+    theme_bw() 
+  g1[[1]] <- PaperTheme_NoGrid(g1[[1]])+ labs(x=xlabel,y='Individuals %')+
+    scale_x_continuous(breaks = seq(-100,200,50),labels = seq(-100,200,50))+
+    theme(legend.title = element_blank(),legend.position='none', panel.border = element_blank(),
+          plot.margin = margin(t = 5, r = 12, b = 12, l = 5))
+#          axis.title.x = element_text(margin = margin(t = 5)))
+  print(g1[[1]])
+}
+```
+
+
+Figure 3 : Radar Plots
+---
+
+- Averaged across ages
+
+```{r fig.width=7, fig.height=7,dpi=100, results='asis'}
+library(dplyr)
+#library(broom)
+#library(mblm)
+
+Summary_Anova_Tukey <- function (dat, mhq_flds, mhq_fld_labels, broad_age_grps){
+  aov.stats = NULL
+  tukey.stats.diff = NULL
+  tukey.stats.pval = NULL
+  
+  for (k in 1:length(mhq_flds)){
+    for (t in 1:length(broad_age_grps)){
+      anova_model <- aov(as.formula(paste(mhq_flds[k],'~ Group')), data = dat[dat$BroadAgeGroup %in% broad_age_grps[t],])
+      #summary(anova_model)
+      tukey_results=TukeyHSD(anova_model)
+      aov.stats = rbind(aov.stats, data.frame(Fld = mhq_fld_labels[k], Age = broad_age_grps[t],
+                                              aov.F = round(summary(anova_model)[[1]][1,'F value'],1),
+                                              aov.pval=add_stars(summary(anova_model)[[1]][1,'Pr(>F)'])))
+      
+      tukey.stats.diff = cbind(tukey.stats.diff, round(tukey_results$Group[,c('diff')],2))
+      tukey.stats.pval = cbind(tukey.stats.pval, 'p adj'=add_stars(tukey_results$Group[,c('p adj')]))
+      colnames(tukey.stats.diff)[ncol(tukey.stats.diff)] = paste(mhq_fld_labels[k],broad_age_grps[t],sep=':')
+      colnames(tukey.stats.pval)[ncol(tukey.stats.pval)] = paste(mhq_fld_labels[k],broad_age_grps[t],sep=':')
+      row.names(tukey.stats.pval) = row.names(tukey.stats.diff)
+    }}
+  
+  ##reorganizing Tukey stats
+  out=data.frame(t(tukey.stats.diff))
+  out$Age = sapply(row.names(out), function (x) strsplit(x,'[:]')[[1]][2])
+  out$Fld =  sapply(row.names(out), function (x) strsplit(x,'[:]')[[1]][1])
+  colnames(out)[1:3]=paste(colnames(out)[1:3],'diff',sep='.')
+  out = out[,c(4,5,1:3)]
+  out.diff = out[order(out$Age,decreasing = T),]
+  
+  out=data.frame(t(tukey.stats.pval))
+  out$Age = sapply(row.names(out), function (x) strsplit(x,'[:]')[[1]][2])
+  out$Fld =  sapply(row.names(out), function (x) strsplit(x,'[:]')[[1]][1])
+  colnames(out)[1:3]=paste(colnames(out)[1:3],'pval',sep='.')
+  out = out[,c(4,5,1:3)]
+  out.pval = out[order(out$Age,decreasing = T),]
+  
+  out = merge(out.diff, out.pval, by=c('Age','Fld'),sort = F)
+  
+  return(list(anova = aov.stats, tukey = out, n=as.matrix(table(dat$Group,dat$BroadAgeGroup))))
+}
+
+mhq_flds = mhq_fld_labels$Fld[mhq_fld_labels$Type == 'Dims'][mhq_fld_labels$Order[mhq_fld_labels$Type == 'Dims']] #names(dataset_complete)[9:14]
+#mhq_flds = mhq_flds[new_order]
+
+df = dataset_complete[,c('Group','AgeGroup', mhq_flds)]
+df$AgeGroup[df$AgeGroup %in% c('65-74','75+','65+')] = '55-64'
+df$Group = factor(df$Group, levels = names(TribeOfInterest))
+df$AgeGroup = factor(df$AgeGroup)
+
+##PLOTTING RADAR PLOTS FOR DIMS##
+df = df[,c('Group','AgeGroup',mhq_flds)]
+
+# Fit ANOVA model
+dg=df
+dg$BroadAgeGroup = NA
+for (q1 in 1:length(broad_age_grps_list)){
+  dg$BroadAgeGroup[df$AgeGroup %in% broad_age_grps_list[[q1]]] = names(broad_age_grps_list)[q1] 
+}
+
+broad_age_grps = names(broad_age_grps_list)
+
+mhq_label=merge(data.frame(Fld=mhq_flds),mhq_fld_labels,sort=F, all.x=T)$FullLabel
+
+stats = Summary_Anova_Tukey(dat=dg, mhq_flds = mhq_flds, mhq_fld_labels =  mhq_label, rev(broad_age_grps))
+kable(stats$anova, booktabs = T, caption = "Anova - MHQ dims by population group",row.names = T)%>%kable_styling(full_width = F,position="left")
+kable(stats$tukey, booktabs = T, caption = "Tukeys HSD - MHQ dims by population group",row.names = F)%>%kable_styling(full_width = F,position="left") 
+kable(stats$n, booktabs = T, caption = "N used for above test - by Group, population group",row.names = T)%>%kable_styling(full_width = F,position="left") 
+
+rm(stats, dg)
+
+##PLOTTING RADAR PLOTS FOR DIMS##
+
+MHQ_summary=NULL
+MHQ_summary_u35=NULL
+MHQ_summary_35p=NULL
+MHQ_summary_55p=NULL
+MHQ_summary_35to55=NULL
+MHQ_summary_overall=NULL
+RadarPlots_byTribe = list()
+
+for (k in 1:length(TribeOfInterest)){
+  dg = df[df$Group %in% names(TribeOfInterest)[k],c('AgeGroup',mhq_flds)]
+  mhq_mean = dg %>% group_by(AgeGroup) %>% summarise(across(everything(), mean, na.rm=T))
+  mhq_mean = na.omit(mhq_mean)
+  MHQ_summary=cbind(MHQ_summary, colMeans(mhq_mean[2:ncol(mhq_mean)],na.rm=T))
+  
+  MHQ_summary_u35=cbind(MHQ_summary_u35, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`18-34`,2:ncol(mhq_mean)],na.rm=T))
+  
+  MHQ_summary_35to55=cbind(MHQ_summary_35to55, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`35-54`,2:ncol(mhq_mean)],na.rm=T))
+  
+  MHQ_summary_55p=cbind(MHQ_summary_55p, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`55+`,2:ncol(mhq_mean)],na.rm=T))
+  
+  RadarPlots_byTribe[[names(TribeOfInterest)[k]]] = cbind('55plus'=MHQ_summary_55p[,ncol(MHQ_summary_55p)],
+                                                          '35to54'=MHQ_summary_35to55[,ncol(MHQ_summary_35to55)],
+                                                          'under35'=MHQ_summary_u35[,ncol(MHQ_summary_u35)])
+  #MHQ_summary_overall=cbind(MHQ_summary_overall,colMeans(dg[,2:ncol(dg)],na.rm=T))
+  rm(mhq_mean)
+}
+
+mhq_label=merge(data.frame(Fld=mhq_flds),mhq_fld_labels,sort=F, all.x=T)$Label
+# Save_Fig3_Radar = NULL
+# Save_Fig3_Radar = cbind(MHQ_summary_55p, Age='55+', MHQ_summary_35to55, Age='35-54', MHQ_summary_u35, Age='16-34')
+# write.csv(Save_Fig3_Radar, './SavedDataset/Fig3_mhqdims_radar.csv')
+
+colnames(MHQ_summary_55p) = names(TribeOfInterest)
+row.names(MHQ_summary_55p)= mhq_label
+radarPlot(values = MHQ_summary_55p, titleName='OVER 55YRS age', caxislabels = seq(60, 120, 15), plotBlank=T)
+
+colnames(MHQ_summary_35to55) = names(TribeOfInterest)
+row.names(MHQ_summary_35to55)= mhq_label
+radarPlot(values = MHQ_summary_35to55, titleName='35-54YRS age', caxislabels = seq(60, 120, 15), plotBlank=T)
+
+colnames(MHQ_summary_u35) = names(TribeOfInterest)
+row.names(MHQ_summary_u35) = mhq_label
+radarPlot(values = MHQ_summary_u35, titleName='UNDER 35YRS age', caxislabels = seq(60, 120, 15), plotBlank=T)
+
+for (k in 1:length(TribeOfInterest)){
+  row.names(RadarPlots_byTribe[[names(TribeOfInterest)[k]]])= mhq_label
+  radarPlot(values = RadarPlots_byTribe[[names(TribeOfInterest)[k]]], titleName=names(TribeOfInterest)[k], 
+            caxislabels = seq(60, 120, 15), colorPalatte = colorPalatte_Tribe[[names(TribeOfInterest)[k]]], plotBlank=F)
+}
+
+```
+
+mhq_dims :: Males vs Females
+
+```{r fig.width=7, fig.height=7,dpi=100, results='asis'}
+library(dplyr)
+library(broom)
+library(mblm)
+
+df = dataset_complete[,c('Group','AgeGroup',"Biological.Sex", mhq_flds)]
+df$AgeGroup[df$AgeGroup %in% c('65-74','75+','65+')] = '55-64'
+df$Group = factor(df$Group, levels = names(TribeOfInterest))
+df$AgeGroup = factor(df$AgeGroup)
+
+##PLOTTING RADAR PLOTS FOR DIMS##
+df = df[,c('Group','AgeGroup',"Biological.Sex",mhq_flds)]
+
+# Fit ANOVA model
+dg=df
+dg$BroadAgeGroup = NA
+for (q1 in 1:length(broad_age_grps_list)){
+  dg$BroadAgeGroup[df$AgeGroup %in% broad_age_grps_list[[q1]]] = names(broad_age_grps_list)[q1] 
+}
+broad_age_grps = names(broad_age_grps_list)
+
+aov.stats = NULL
+for (k in 1:length(mhq_flds)){
+  for (t in 1:length(broad_age_grps)){
+    for (k1 in 1:length(TribeOfInterest)){
+      dat = dg[(dg$BroadAgeGroup %in% broad_age_grps[t] & dg$Group %in% names(TribeOfInterest)[k1]),]
+      dat = dat[dat$Biological.Sex %in% c('Male','Female'),]
+      anova_model <- aov(as.formula(paste(mhq_flds[k],'~ Biological.Sex')), data = dat)
+      #summary(anova_model)
+      aov.stats = rbind(aov.stats, data.frame(Fld = mhq_flds[k], Age = broad_age_grps[t], Group=names(TribeOfInterest)[k1],
+                                            #aov.F = round(summary(anova_model)[[1]][1,'F value'],1),
+                                            aov.pval=add_stars(summary(anova_model)[[1]][1,'Pr(>F)'])))
+}}}
+
+kable(acast(aov.stats, Fld + Group ~ Age, value.var = "aov.pval"), booktabs = T, caption = "Anova - MHQ by Gender",row.names = T)%>%kable_styling(full_width = F,position="left") 
+
+rm(aov.stats,  dg)
+
+##PLOTTING RADAR PLOTS FOR DIMS##
+MHQ_summary=NULL
+MHQ_summary_u35=NULL
+MHQ_summary_35p=NULL
+MHQ_summary_55p=NULL
+MHQ_summary_35to55=NULL
+MHQ_summary_overall=NULL
+RadarPlots_byTribe = list()
+
+for (k in 1:length(TribeOfInterest)){
+  dg = df[df$Group %in% names(TribeOfInterest)[k],c('AgeGroup',mhq_flds)]
+  mhq_mean = dg %>% group_by(AgeGroup) %>% summarise(across(everything(), mean, na.rm=T))
+  mhq_mean = na.omit(mhq_mean)
+  MHQ_summary=cbind(MHQ_summary, colMeans(mhq_mean[2:ncol(mhq_mean)],na.rm=T))
+  
+    MHQ_summary_u35=cbind(MHQ_summary_u35, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`18-34`,2:ncol(mhq_mean)],na.rm=T))
+  
+  MHQ_summary_35to55=cbind(MHQ_summary_35to55, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`35-54`,2:ncol(mhq_mean)],na.rm=T))
+  
+  MHQ_summary_55p=cbind(MHQ_summary_55p, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`55+`,2:ncol(mhq_mean)],na.rm=T))
+
+  RadarPlots_byTribe[[names(TribeOfInterest)[k]]] = cbind('55plus'=MHQ_summary_55p[,ncol(MHQ_summary_55p)],
+                                                          '35to54'=MHQ_summary_35to55[,ncol(MHQ_summary_35to55)],
+                                                          'under35'=MHQ_summary_u35[,ncol(MHQ_summary_u35)])
+  #MHQ_summary_overall=cbind(MHQ_summary_overall,colMeans(dg[,2:ncol(dg)],na.rm=T))
+  rm(mhq_mean)
+}
+
+mhq_label=merge(data.frame(Fld=mhq_flds),mhq_fld_labels,sort=F, all.x=T)$Label
+# Save_Fig3_Radar = NULL
+# Save_Fig3_Radar = cbind(MHQ_summary_55p, Age='55+', MHQ_summary_35to55, Age='35-54', MHQ_summary_u35, Age='16-34')
+# write.csv(Save_Fig3_Radar, './SavedDataset/Fig3_mhqdims_radar.csv')
+
+colnames(MHQ_summary_55p) = names(TribeOfInterest)
+row.names(MHQ_summary_55p)= mhq_label
+radarPlot(values = MHQ_summary_55p, titleName='OVER 55YRS age', caxislabels = seq(60, 120, 15), plotBlank=T)
+
+colnames(MHQ_summary_35to55) = names(TribeOfInterest)
+row.names(MHQ_summary_35to55)= mhq_label
+radarPlot(values = MHQ_summary_35to55, titleName='35-54YRS age', caxislabels = seq(60, 120, 15), plotBlank=T)
+
+colnames(MHQ_summary_u35) = names(TribeOfInterest)
+row.names(MHQ_summary_u35) = mhq_label
+radarPlot(values = MHQ_summary_u35, titleName='UNDER 35YRS age', caxislabels = seq(60, 120, 15), plotBlank=T)
+
+for (k in 1:length(TribeOfInterest)){
+  row.names(RadarPlots_byTribe[[names(TribeOfInterest)[k]]])= mhq_label
+  radarPlot(values = RadarPlots_byTribe[[names(TribeOfInterest)[k]]], titleName=names(TribeOfInterest)[k], 
+            caxislabels = seq(60, 120, 15), colorPalatte = colorPalatte_Tribe[[names(TribeOfInterest)[k]]], plotBlank=F)
+}
+
+# ##One-way anova and tukeys HSD and Theil-Sen
+# Print_SaveStats(StatFile='./SavedDataset/MHQdims_radarstats.RData', object_id='output', fld_names=mhq_flds, outname_prefix='MHQdims')
+```
+
+MHQ radar charts by tribe | Spectrum & Problem 
+---
+
+```{r fig.width=10, fig.height=10,dpi=100, results='asis', eval=T}
+spectrum=mhq_fld_labels[mhq_fld_labels$Type == 'Capacity', c('Fld','Order')]
+spectrum=spectrum[order(spectrum$Order),]
+spectrum_qnames = spectrum$Fld
+
+problem=mhq_fld_labels[mhq_fld_labels$Type == 'Problem', c('Fld','Order')]
+problem=problem[order(problem$Order),]
+problem_qnames = problem$Fld
+rm(spectrum, problem)
+
+df = dataset_complete[,c('Group','AgeGroup', spectrum_qnames, problem_qnames)]
+df$AgeGroup[df$AgeGroup %in% c('65-74','75+','65+')] = '55-64'
+df$Group = factor(df$Group, levels = names(TribeOfInterest))
+df$AgeGroup = factor(df$AgeGroup)
+
+spec_label=merge(data.frame(Fld=spectrum_qnames),mhq_fld_labels,sort=F, all.x=T)$FullLabel
+prob_label=merge(data.frame(Fld=problem_qnames),mhq_fld_labels,sort=F, all.x=T)$FullLabel
+
+# Fit ANOVA model
+dg=df
+dg$BroadAgeGroup = NA
+for (q1 in 1:length(broad_age_grps_list)){
+  dg$BroadAgeGroup[df$AgeGroup %in% broad_age_grps_list[[q1]]] = names(broad_age_grps_list)[q1] 
+}
+broad_age_grps = names(broad_age_grps_list)
+
+###Capacity Stats
+stats = Summary_Anova_Tukey(dat=dg, mhq_flds = spectrum_qnames, mhq_fld_labels = spec_label, broad_age_grps)
+kable(stats$anova, booktabs = T, caption = "Anova - Capacities by population group",row.names = T)%>%kable_styling(full_width = F,position="left")
+kable(stats$tukey, booktabs = T, caption = "Tukeys HSD - Capacities by population group",row.names = F)%>%kable_styling(full_width = F,position="left") 
+kable(stats$n, booktabs = T, caption = "N used for above test - by Group, population group",row.names = T)%>%kable_styling(full_width = F,position="left") 
+
+rm(stats)
+
+###Problem Stats
+stats = Summary_Anova_Tukey(dat=dg, mhq_flds = problem_qnames, mhq_fld_labels = prob_label,broad_age_grps)
+kable(stats$anova, booktabs = T, caption = "Anova - Problem by population group",row.names = T)%>%kable_styling(full_width = F,position="left")
+kable(stats$tukey, booktabs = T, caption = "Tukeys HSD - Problem by population group",row.names = F)%>%kable_styling(full_width = F,position="left") 
+kable(stats$n, booktabs = T, caption = "N used for above test - by Group, population group",row.names = T)%>%kable_styling(full_width = F,position="left") 
+
+rm(stats)
+```
+
+```{r, fig.width=10, fig.height=10,dpi=100,results='asis', eval=T}
+##PLOTTING RADAR PLOTS FOR PROBLEM and CAPACITY##
+Spectrum_summary=NULL
+Spectrum_summary_u35=NULL
+Spectrum_summary_55p=NULL
+Spectrum_summary_35to55=NULL
+Spectrum_summary_overall=NULL
+SpectrumPlots_byTribe = list()
+
+Problem_summary=NULL
+Problem_summary_u35=NULL
+Problem_summary_55p=NULL
+Problem_summary_35to55=NULL
+Problem_summary_overall=NULL
+ProblemPlots_byTribe = list()
+
+for (k in 1:length(TribeOfInterest)){
+  dg = df[df$Group %in% names(TribeOfInterest)[k],c('AgeGroup',spectrum_qnames)]
+  mhq_mean = dg %>% group_by(AgeGroup) %>% summarise(across(everything(), mean, na.rm=T))
+  mhq_mean = na.omit(mhq_mean)
+  Spectrum_summary=cbind(Spectrum_summary, colMeans(mhq_mean[2:ncol(mhq_mean)],na.rm=T))
+  
+  Spectrum_summary_u35=cbind(Spectrum_summary_u35, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`18-34`,2:ncol(mhq_mean)],na.rm=T))
+  
+  Spectrum_summary_55p=cbind(Spectrum_summary_55p, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`55+`,2:ncol(mhq_mean)],na.rm=T))
+  
+  Spectrum_summary_35to55=cbind(Spectrum_summary_35to55, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`35-54`,2:ncol(mhq_mean)],na.rm=T))
+  Spectrum_summary_overall=cbind(Spectrum_summary_overall, colMeans(dg[,2:ncol(dg)], na.rm=T))
+  
+  SpectrumPlots_byTribe[[names(TribeOfInterest)[k]]] = cbind('55plus'=Spectrum_summary_55p[,ncol(Spectrum_summary_55p)],
+                                                          '35to54'=Spectrum_summary_35to55[,ncol(Spectrum_summary_35to55)],
+                                                          'under35'=Spectrum_summary_u35[,ncol(Spectrum_summary_u35)])
+  rm(dg, mhq_mean)
+  
+  dg = df[df$Group %in% names(TribeOfInterest)[k],c('AgeGroup',problem_qnames)]
+  mhq_mean = dg %>% group_by(AgeGroup) %>% summarise(across(everything(), mean, na.rm=T))
+  mhq_mean = na.omit(mhq_mean)
+  Problem_summary=cbind(Problem_summary, colMeans(mhq_mean[2:ncol(mhq_mean)],na.rm=T))
+  
+  Problem_summary_u35=cbind(Problem_summary_u35, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`18-34`,2:ncol(mhq_mean)],na.rm=T))
+  Problem_summary_55p=cbind(Problem_summary_55p, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`55+`,2:ncol(mhq_mean)],na.rm=T))
+  Problem_summary_35to55=cbind(Problem_summary_35to55, colMeans(mhq_mean[mhq_mean$AgeGroup %in% broad_age_grps_list$`35-54`,2:ncol(mhq_mean)],na.rm=T))
+  
+  Problem_summary_overall=cbind(Problem_summary_overall, colMeans(dg[,2:ncol(dg)], na.rm=T))
+  ProblemPlots_byTribe[[names(TribeOfInterest)[k]]] = cbind('55plus'=Problem_summary_55p[,ncol(Problem_summary_55p)],
+                                                          '35to54'=Problem_summary_35to55[,ncol(Problem_summary_35to55)],
+                                                          'under35'=Problem_summary_u35[,ncol(Problem_summary_u35)])
+
+  rm(dg, mhq_mean)
+}
+
+
+colnames(Spectrum_summary) = names(TribeOfInterest)
+row.names(Spectrum_summary) = spec_label
+colnames(Spectrum_summary_u35) = names(TribeOfInterest)
+row.names(Spectrum_summary_u35) = spec_label
+colnames(Spectrum_summary_55p) = names(TribeOfInterest)
+row.names(Spectrum_summary_55p) = spec_label
+colnames(Spectrum_summary_35to55) = names(TribeOfInterest)
+row.names(Spectrum_summary_35to55) = spec_label
+
+colnames(Problem_summary) = names(TribeOfInterest)
+row.names(Problem_summary) = prob_label
+colnames(Problem_summary_u35) = names(TribeOfInterest)
+row.names(Problem_summary_u35) = prob_label
+colnames(Problem_summary_55p) = names(TribeOfInterest)
+row.names(Problem_summary_55p) = prob_label
+colnames(Problem_summary_35to55) = names(TribeOfInterest)
+row.names(Problem_summary_35to55) = prob_label
+
+# Save_Fig4A_Spectrum = NULL
+# Save_Fig4A_Spectrum = cbind(Spectrum_summary_55p, Age='55+', Spectrum_summary_35to55, Age='35-54', Spectrum_summary_u35, Age='16-34')
+# write.csv(Save_Fig4A_Spectrum, './SavedDataset/Fig4A_spectrum_radar.csv')
+# 
+# Save_Fig4B_Problem = NULL
+# Save_Fig4B_Problem = cbind(Problem_summary_55p, Age='55+', Problem_summary_35to55, Age='35-54', Problem_summary_u35, Age='16-34')
+# write.csv(Save_Fig4B_Problem, './SavedDataset/Fig4B_problem_radar.csv')
+
+radarPlot_SP(values = Spectrum_summary_55p, titleName='OVER 55YRS age', colorPalatte = colorPalatte_GM, plotBlank=T)
+radarPlot_SP(values = Problem_summary_55p, titleName='OVER 55YRS age', colorPalatte = colorPalatte_GM, plotBlank=T)
+
+radarPlot_SP(values = Spectrum_summary_35to55, titleName='35-54YRS age', colorPalatte = colorPalatte_GM, plotBlank=T)
+radarPlot_SP(values = Problem_summary_35to55, titleName='35-54YRS age', colorPalatte = colorPalatte_GM, plotBlank=T)
+
+radarPlot_SP(values = Spectrum_summary_u35, titleName='UNDER 35YRS age', colorPalatte = colorPalatte_GM, plotBlank=T)
+radarPlot_SP(values = Problem_summary_u35, titleName='UNDER 35YRS age', colorPalatte = colorPalatte_GM, plotBlank=T)
+
+for (k in 1:length(TribeOfInterest)){
+  row.names(SpectrumPlots_byTribe[[names(TribeOfInterest)[k]]])= spec_label
+  radarPlot_SP(values = SpectrumPlots_byTribe[[names(TribeOfInterest)[k]]], titleName=names(TribeOfInterest)[k], 
+            colorPalatte = colorPalatte_Tribe[[names(TribeOfInterest)[k]]], plotBlank=F)
+  
+  row.names(ProblemPlots_byTribe[[names(TribeOfInterest)[k]]])= prob_label
+  radarPlot_SP(values = ProblemPlots_byTribe[[names(TribeOfInterest)[k]]], titleName=names(TribeOfInterest)[k], 
+            colorPalatte = colorPalatte_Tribe[[names(TribeOfInterest)[k]]], plotBlank=F)
+}
+```
+

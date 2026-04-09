@@ -18,18 +18,20 @@ This project investigates the lifestyle drivers of Mental Health Quotient (MHQ) 
 ## Data
 - Input: `Study_DemoDataset_N10000.csv` Demo data with subset of 10000 participants randomly selected
 - Mapping: `mhq_field_labels2.csv` Mapping the dimensions, capacities and problem field names
+- For Figure 2 - `GM_World_mhq_by_age.csv` Have IE-Global data mean and sd values
 
 ## Usage
 
 1. Run the main script from the folder:
    ```bash
    R CMD BATCH Predict_MHQ_from_Life.R
+   Rscript -e "rmarkdown::render('TZdata_mhq_figures.Rmd')
    ```
-2. Results will be saved in the same folder
+2. Results will be saved in the same folder. Figures in TZdata_mhq_figures.html
 
 ## Requirements
 - R version 4.0.3+
-- Packages : mblm, plyr, kableExtra
+- Packages : mblm, plyr, kableExtra, knitR, reshape2
 
 
 ## Output Files
@@ -37,6 +39,7 @@ This project investigates the lifestyle drivers of Mental Health Quotient (MHQ) 
 - `MHQDims_AnovaTukeys.csv`: One-way ANOVA and Tukey's HSD MHQ dimensions
 - `MHQCapacities_Tukeys.csv`: One-way ANOVA and Tukey's HSD MHQ dimensions
 - `MHQProblems_Tukeys.csv`: One-way ANOVA and Tukey's HSD MHQ dimensions
+- `TZdata_mhq_figures.html` : Figures generated for the study (when the complete data is uploaded)
 
 ## Contributors
 - Dhanya Parameshwaran (dhanya@sapienlabs.org)
